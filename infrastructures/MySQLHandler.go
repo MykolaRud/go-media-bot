@@ -9,6 +9,10 @@ type MySQLHandler struct {
 	Conn *sql.DB
 }
 
+func (handler *MySQLHandler) SetConn(Connection *sql.DB) {
+	handler.Conn = Connection
+}
+
 func (handler *MySQLHandler) Execute(statement string, args ...any) (sql.Result, error) {
 
 	return handler.Conn.Exec(statement, args...)

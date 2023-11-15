@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/go-sql-driver/mysql"
+	"go.uber.org/dig"
 	"log"
 	"media_bot/infrastructures"
+	"media_bot/interfaces"
 	"media_bot/models"
 	"media_bot/parsers"
 	"media_bot/repositories"
@@ -14,62 +16,36 @@ import (
 
 var (
 	MySQLConfig = mysql.Config{
-		User:   "root",
+		User:   "rud",
 		Passwd: "diedie11",
 		Net:    "tcp",
 		Addr:   "127.0.0.1:3306",
 		DBName: "media_bot",
 	}
 	Repo *repositories.ArticleRepository
-	Conn *sql.DB
 )
 
 func main() {
-
-	initDB()
-	initRepo()
+	container := dig.New()
+	container.Provide(initDBConnection)
+	container.Provide(initDBHandler)
+	container.Invoke(initRepo)
 
 	parsedArticleChannel := make(chan models.ParsedArticle)
 
-	newsApiParser := parsers.NewsapiParser{}
-	go func() {
-		for {
-			newsApiParser.ParseNew(parsedArticleChannel)
-			time.Sleep(time.Minute)
-		}
-	}()
+	parsers := []interfaces.IParser{
+		parsers.NewsapiParser{},
+		parsers.RedditParser{},
+	}
 
-	redditParser := parsers.RedditParser{}
-
-	go func() {
-		for {
-			redditParser.ParseNew(parsedArticleChannel)
-			time.Sleep(time.Minute)
-		}
-	}()
-
-	//go parser 1
-	//go parser 2
-
-	//read from channel
-	//var parsedArticle models.ParsedArticle
-
-	//for {
-	//	select {
-	//	case parsedArticle = <-parsedArticleChannel:
-	//
-	//		//fmt.Println("article grabbed ", parsedArticle.PublishedAt, ": ", parsedArticle.Title)
-	//
-	//		added := Repo.CheckAndAdd(parsedArticle)
-	//		if added {
-	//			fmt.Println("article received ", parsedArticle.PublishedAt, ": ", parsedArticle.Title)
-	//		}
-	//
-	//	default:
-	//		//fmt.Println("no message")
-	//		time.Sleep(time.Millisecond * 300)
-	//	}
-	//}
+	for _, parser := range parsers {
+		go func() {
+			for {
+				parser.ParseNew(parsedArticleChannel)
+				time.Sleep(time.Minute)
+			}
+		}()
+	}
 
 	for parsedArticle := range parsedArticleChannel {
 		added := Repo.CheckAndAdd(parsedArticle)
@@ -80,10 +56,10 @@ func main() {
 
 }
 
-func initDB() {
+func initDBConnection() *sql.DB {
 	var err error
 
-	Conn, err = sql.Open("mysql", MySQLConfig.FormatDSN())
+	Conn, err := sql.Open("mysql", MySQLConfig.FormatDSN())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -93,11 +69,16 @@ func initDB() {
 		log.Fatal(pingErr)
 	}
 	fmt.Println("Connected!")
+
+	return Conn
 }
 
-func initRepo() {
-	mysqlHandler := &infrastructures.MySQLHandler{}
-	mysqlHandler.Conn = Conn
+func initDBHandler() interfaces.IDbHandler {
+	return &infrastructures.MySQLHandler{}
+}
 
-	Repo = &repositories.ArticleRepository{mysqlHandler}
+func initRepo(dbHandler interfaces.IDbHandler, Conn *sql.DB) {
+	dbHandler.SetConn(Conn)
+
+	Repo = &repositories.ArticleRepository{dbHandler}
 }

@@ -17,7 +17,7 @@ type RedditParser struct {
 	UrlPrefix string
 }
 
-func (parser *RedditParser) ParseNew(c chan models.ParsedArticle) {
+func (parser RedditParser) ParseNew(c chan models.ParsedArticle) {
 	parser.UrlPrefix = "https://www.reddit.com"
 
 	feed := parser.getFeed()
@@ -25,7 +25,7 @@ func (parser *RedditParser) ParseNew(c chan models.ParsedArticle) {
 	parser.pushFeedData(parsedArticles, c)
 }
 
-func (parser *RedditParser) getFeed() []byte {
+func (parser RedditParser) getFeed() []byte {
 	//url := "https://www.reddit.com/r/popular/new/"
 	url := parser.UrlPrefix + "/t/nfl/"
 
@@ -43,7 +43,7 @@ func (parser *RedditParser) getFeed() []byte {
 	return body
 }
 
-func (parser *RedditParser) parseFeed(feed []byte) []models.ParsedArticle {
+func (parser RedditParser) parseFeed(feed []byte) []models.ParsedArticle {
 	var parsedArticles []models.ParsedArticle
 	// Load the HTML document
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(feed[:])))
@@ -81,7 +81,7 @@ func (parser *RedditParser) parseFeed(feed []byte) []models.ParsedArticle {
 	return parsedArticles
 }
 
-func (parser *RedditParser) pushFeedData(parsedArticles []models.ParsedArticle, c chan models.ParsedArticle) {
+func (parser RedditParser) pushFeedData(parsedArticles []models.ParsedArticle, c chan models.ParsedArticle) {
 	source := models.Source{}
 
 	for _, el := range parsedArticles {
