@@ -14,13 +14,13 @@ type NewsapiParser struct {
 	interfaces.IParser
 }
 
-func (parser *NewsapiParser) ParseNew(c chan models.ParsedArticle) {
+func (parser NewsapiParser) ParseNew(c chan models.ParsedArticle) {
 	feed := parser.getFeed()
 	newsApiResponse := parser.parseFeed(feed)
 	parser.pushFeedData(newsApiResponse, c)
 }
 
-func (parser *NewsapiParser) getFeed() []byte {
+func (parser NewsapiParser) getFeed() []byte {
 
 	ApiKey := "f88bdcacb34e4b2e8b3f5bd84724f741"
 
@@ -33,14 +33,14 @@ func (parser *NewsapiParser) getFeed() []byte {
 	return body
 }
 
-func (parser *NewsapiParser) parseFeed(feed []byte) models.NewsApiResponse {
+func (parser NewsapiParser) parseFeed(feed []byte) models.NewsApiResponse {
 	var newsApiResponse models.NewsApiResponse
 	json.Unmarshal(feed, &newsApiResponse)
 
 	return newsApiResponse
 }
 
-func (parser *NewsapiParser) pushFeedData(newsApiResponse models.NewsApiResponse, c chan models.ParsedArticle) {
+func (parser NewsapiParser) pushFeedData(newsApiResponse models.NewsApiResponse, c chan models.ParsedArticle) {
 	ignoreArticleTitles := []string{"[Removed]"}
 
 	source := models.Source{}
